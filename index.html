@@ -58,7 +58,7 @@
             font-weight: bold;
         }
 
-        /* CONTEÚDO PRINCIPAL (OCULTO INICIALMENTE) */
+        /* CONTEÚDO PRINCIPAL */
         #main-content {
             display: none;
             padding: 20px;
@@ -233,18 +233,14 @@
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 67 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
     }
 
-    // LÓGICA DE MEMORIZAÇÃO E SENHA
+    // LÓGICA DE LOGIN MEMORIZADO
     window.onload = function() {
-        const isAuth = localStorage.getItem('guinho_authorized');
-        if(isAuth === 'true') {
-            showContent();
-        }
+        if(localStorage.getItem('guinho_authorized') === 'true') { showContent(); }
     }
 
     function verifyPass() {
-        const pass = document.getElementById('pass-field').value;
-        if(pass === "MILHAECENTENA") {
-            localStorage.setItem('guinho_authorized', 'true'); // Memoriza o dispositivo
+        if(document.getElementById('pass-field').value === "MILHAECENTENA") {
+            localStorage.setItem('guinho_authorized', 'true');
             showContent();
         } else {
             document.getElementById('error-msg').style.display = 'block';
@@ -257,18 +253,12 @@
         init();
     }
 
-    // FULLSCREEN
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                alert(`Erro ao tentar modo tela cheia: ${err.message}`);
-            });
-        } else {
-            document.exitFullscreen();
-        }
+        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
+        else { document.exitFullscreen(); }
     }
 
-    // CONFIGURAÇÕES DE JOGO PRESERVADAS
+    // CONFIGURAÇÕES DE FECHAMENTO
     let selectedNumbers = [];
     const matrix = [
         [0, 2, 7, 1], [0, 4, 6, 2], [0, 6, 4, 3], [1, 0, 4, 6], [1, 3, 2, 7],
@@ -284,8 +274,7 @@
         selectorDiv.innerHTML = '';
         for(let i=0; i<=9; i++) {
             let btn = document.createElement('button');
-            btn.innerText = i;
-            btn.className = 'num-btn';
+            btn.innerText = i; btn.className = 'num-btn';
             btn.onclick = () => toggleNumber(i, btn);
             selectorDiv.appendChild(btn);
         }
@@ -321,8 +310,7 @@
         matrix.forEach((indices, i) => {
             const milha = indices.map(idx => sorted[idx]).join('');
             const div = document.createElement('div');
-            div.className = 'game-card';
-            div.id = `game-${i}`;
+            div.className = 'game-card'; div.id = `game-${i}`;
             div.innerHTML = `<span style="color:#888; font-size:0.7rem;">${i+1}º</span> <span>${milha}</span>`;
             list.appendChild(div);
         });
@@ -361,13 +349,37 @@
         checkGames();
     }
 
+    // NOVO MODELO DE COMPARTILHAMENTO EM BLOCOS
     function shareGames() {
         if (selectedNumbers.length < 8) return alert("Selecione 8 números.");
         const sorted = [...selectedNumbers].sort((a,b) => a-b);
-        let texto = "🎯 *FECHAMENTO DO GUINHO*\n\n";
-        matrix.forEach((indices, i) => { texto += `${i+1}º: ${indices.map(idx => sorted[idx]).join('').substring(1)}\n`; });
-        if (navigator.share) navigator.share({ title: 'Jogos do Guinho', text: texto });
-        else { navigator.clipboard.writeText(texto); alert("Copiado!"); }
+        const allNums = [0,1,2,3,4,5,6,7,8,9];
+        const outNums = allNums.filter(n => !selectedNumbers.includes(n));
+        
+        let games = [];
+        matrix.forEach((indices) => {
+            games.push(indices.map(idx => sorted[idx]).join(''));
+        });
+
+        let texto = `🌟 *NOSSAS 8 DEZENAS DE ELITE:*\n${sorted.join(' - ')}\n\n`;
+        texto += `🚫 *QUEM FICOU DE FORA:*\n${outNums.join(' - ')}\n\n`;
+        texto += `(Milha extraída do site Milha E Centenas Secas Do Guinho)\n\n`;
+
+        for (let b = 0; b < 3; b++) {
+            texto += `📦 *BLOCO 0${b+1} (10 JOGOS)*\n`;
+            let blocoJogos = [];
+            for (let i = 0; i < 10; i++) {
+                blocoJogos.push(games[b * 10 + i]);
+            }
+            texto += blocoJogos.join(' | ') + "\n\n";
+        }
+
+        if (navigator.share) {
+            navigator.share({ title: 'Jogos do Guinho', text: texto });
+        } else {
+            navigator.clipboard.writeText(texto);
+            alert("Jogos formatados e copiados para a área de transferência!");
+        }
     }
 </script>
 </body>
