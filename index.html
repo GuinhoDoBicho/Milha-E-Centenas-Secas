@@ -6,12 +6,13 @@
     <title>Milha E Centenas Secas Do Guinho</title>
     <style>
         :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
+            --primary: #00FF41; /* Verde Matrix */
+            --secondary: #003B00;
             --accent: #e74c3c;
             --success: #27ae60;
             --gold: #f1c40f;
             --blue-btn: #2980b9;
+            --matrix-bg: #000000;
         }
 
         body {
@@ -19,19 +20,30 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #a5c3d9;
+            background-color: var(--matrix-bg);
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* EFEITO MATRIX NO FUNDO */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
         }
 
         /* TELA DE LOGIN */
         #login-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: #2c3e50;
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -39,22 +51,25 @@
         }
 
         .login-box {
-            background: white;
+            background: #111;
             padding: 30px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-top: 8px solid var(--gold);
+            box-shadow: 0 0 20px var(--primary);
+            border: 2px solid var(--primary);
         }
+
+        .login-box h2 { color: var(--primary); margin-bottom: 20px; }
 
         .login-box input {
             padding: 12px;
-            width: 200px;
+            width: 220px;
             margin: 15px 0;
-            border: 2px solid #ddd;
+            background: #000;
+            border: 1px solid var(--primary);
             border-radius: 6px;
             text-align: center;
-            display: block;
+            color: var(--primary);
             font-weight: bold;
         }
 
@@ -65,13 +80,14 @@
             width: 100%;
             max-width: 900px;
             box-sizing: border-box;
+            z-index: 1;
         }
 
         .container {
-            background: #cbd9e6;
+            background: rgba(203, 217, 230, 0.92); /* Leve transparência */
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0,255,65,0.2);
             border: 3px solid var(--secondary);
         }
 
@@ -96,13 +112,13 @@
         }
 
         .daily-tip {
-            background: #2c3e50;
-            color: #f1c40f;
+            background: #000;
+            color: var(--primary);
             padding: 12px;
             border-radius: 8px;
             margin-bottom: 15px;
             text-align: center;
-            border: 2px dashed #f1c40f;
+            border: 2px solid var(--primary);
         }
 
         .number-selector {
@@ -163,20 +179,22 @@
         .btn-clear { background: #c0392b; }
         .btn-share { background: var(--blue-btn); }
         .btn-fullscreen { background: #607d8b; }
-        .btn-login { background: var(--success); color: white; width: 100%; border: none; padding: 12px; cursor: pointer; font-weight: bold; border-radius: 6px; }
+        .btn-login { background: var(--primary); color: #000; width: 100%; border: none; padding: 12px; cursor: pointer; font-weight: bold; border-radius: 6px; }
 
-        footer { margin-top: 30px; padding: 15px; font-weight: bold; color: #2c3e50; text-align: center; }
+        footer { margin-top: 30px; padding: 15px; font-weight: bold; color: var(--primary); text-align: center; text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
+<canvas id="matrix-canvas"></canvas>
+
 <div id="login-overlay">
     <div class="login-box">
-        <h2 style="margin:0; color:var(--primary);">ACESSO RESTRITO</h2>
-        <p style="color:#666; font-size: 0.8rem;">Digite a senha para entrar</p>
-        <input type="password" id="pass-field" placeholder="SENHA" onkeydown="if(event.key==='Enter') verifyPass()">
+        <h2>ACESSO MATRIX</h2>
+        <p style="color:var(--primary); font-size: 0.8rem;">SISTEMA PROTEGIDO</p>
+        <input type="password" id="pass-field" placeholder="DIGITE A SENHA" onkeydown="if(event.key==='Enter') verifyPass()">
         <button class="btn-login" onclick="verifyPass()">ENTRAR NO SISTEMA</button>
-        <p id="error-msg" style="color:red; font-size:0.8rem; display:none; margin-top:10px;">Senha Incorreta!</p>
+        <p id="error-msg" style="color:red; font-size:0.8rem; display:none; margin-top:10px; font-weight: bold;">SENHA INVÁLIDA!</p>
     </div>
 </div>
 
@@ -233,6 +251,35 @@
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 67 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
     }
 
+    // EFEITO MATRIX
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let columns;
+    let drops;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = canvas.width / 16;
+        drops = Array(Math.floor(columns)).fill(1);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0F0';
+        ctx.font = '16px monospace';
+        for (let i = 0; i < drops.length; i++) {
+            const text = String.fromCharCode(Math.floor(Math.random() * 128));
+            ctx.fillText(text, i * 16, drops[i] * 16);
+            if (drops[i] * 16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 40);
+
     // LÓGICA DE LOGIN MEMORIZADO
     window.onload = function() {
         if(localStorage.getItem('guinho_authorized') === 'true') { showContent(); }
@@ -260,7 +307,7 @@
 
     // CONFIGURAÇÕES DE FECHAMENTO
     let selectedNumbers = [];
-    const matrix = [
+    const matrixArr = [
         [0, 2, 7, 1], [0, 4, 6, 2], [0, 6, 4, 3], [1, 0, 4, 6], [1, 3, 2, 7],
         [1, 5, 2, 0], [1, 7, 0, 3], [2, 0, 7, 4], [2, 3, 6, 5], [2, 5, 4, 7],
         [2, 7, 4, 0], [3, 1, 4, 2], [3, 4, 1, 5], [3, 6, 0, 5], [3, 7, 6, 5],
@@ -307,7 +354,7 @@
         list.innerHTML = '';
         if (selectedNumbers.length < 8) return;
         const sorted = [...selectedNumbers].sort((a,b) => a-b);
-        matrix.forEach((indices, i) => {
+        matrixArr.forEach((indices, i) => {
             const milha = indices.map(idx => sorted[idx]).join('');
             const div = document.createElement('div');
             div.className = 'game-card'; div.id = `game-${i}`;
@@ -323,7 +370,7 @@
         document.querySelectorAll('.game-card').forEach(c => c.className = 'game-card');
         if (selectedNumbers.length < 8) return updateCheckerDisplay(milhas, centenas);
         const sorted = [...selectedNumbers].sort((a,b) => a-b);
-        matrix.forEach((indices, gIdx) => {
+        matrixArr.forEach((indices, gIdx) => {
             const mGen = indices.map(idx => sorted[idx]).join('');
             const cGen = mGen.substring(1);
             results.forEach((res, rIdx) => {
@@ -349,7 +396,6 @@
         checkGames();
     }
 
-    // NOVO MODELO DE COMPARTILHAMENTO EM BLOCOS
     function shareGames() {
         if (selectedNumbers.length < 8) return alert("Selecione 8 números.");
         const sorted = [...selectedNumbers].sort((a,b) => a-b);
@@ -357,7 +403,7 @@
         const outNums = allNums.filter(n => !selectedNumbers.includes(n));
         
         let games = [];
-        matrix.forEach((indices) => {
+        matrixArr.forEach((indices) => {
             games.push(indices.map(idx => sorted[idx]).join(''));
         });
 
